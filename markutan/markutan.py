@@ -11,6 +11,10 @@ import numpy as np
 matplotlib.use('TkAgg')
 
 URL = 'http://kaijiang.500.com/static/info/kaijiang/xml/ssq/list.xml?_A=BLWXUIYA1546584359929'
+PROXIES = {
+    "http": "http://10.192.30.188:63128",
+    "https": "http://10.192.30.188:63128",
+}
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'}
 SQL_CONNECT = {'host': '127.0.0.1',
                'user': 'root',
@@ -22,7 +26,7 @@ blues_count = []
 
 
 def get_data_from_url():
-    reponse = requests.get(url=URL, headers=HEADERS)
+    reponse = requests.get(url=URL, headers=HEADERS, proxies=PROXIES)
     pattern = re.compile(r'<row.*?opencode="(.*?)".*?opentime="(.*?)"')
     return pattern.findall(reponse.text)
 
@@ -35,8 +39,8 @@ def write_to_mysql():
     cursor = connection.cursor()
 
     cursor.execute("drop table if exists " + SQL_CONNECT['table_name'])
-    sql_create_table = """create table ssq_info (
-                                         id  int not null primary key,
+    sql_create_table = """create table markutan.ssq_info (
+                                         id  int(0) not null primary key auto_increment,
                                          red1  char(20) not null,
                                          red2  char(20) not null,
                                          red3  char(20) not null,
@@ -45,6 +49,7 @@ def write_to_mysql():
                                          red6 char(20) not null,
                                          blue  char(20) not null,
                                          date  datetime not null)"""
+
     cursor.execute(sql_create_table)
     ssq_data = get_data_from_url()
 
@@ -59,6 +64,7 @@ def write_to_mysql():
             cursor.execute(sql_insert, [red1, red2, red3, red4, red5, red6, blue, date_info])
             connection.commit()
         except Exception as e:
+            print("write data to mysql error: {}".format(e))
             connection.rollback()
 
 
@@ -141,4 +147,5 @@ if __name__ == '__main__':
     get_data_from_mysql()
     red_statistics()
     blue_statistics()
+
 
